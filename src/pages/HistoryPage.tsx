@@ -11,6 +11,7 @@ export default function HistoryPage() {
   const [view, setView] = useState<'mensal' | 'anual'>('mensal');
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [showImport, setShowImport] = useState(false);
 
   const { data: allTx = [], isLoading } = useTransactions(year);
   const { data: cards = [] } = useCreditCards();
