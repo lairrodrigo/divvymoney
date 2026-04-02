@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, Trash2 } from 'lucide-react';
+import { Search, Trash2, Upload } from 'lucide-react';
 import { useTransactions, useDeleteTransaction } from '@/hooks/useTransactions';
+import ImportWizard from '@/components/ImportWizard';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { formatCurrency, formatDate, formatMonthLabel, getCurrentYear } from '@/utils/billing';
 import { CATEGORIES } from '@/types/finance';
@@ -10,6 +11,7 @@ export default function HistoryPage() {
   const [view, setView] = useState<'mensal' | 'anual'>('mensal');
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [showImport, setShowImport] = useState(false);
 
   const { data: allTx = [], isLoading } = useTransactions(year);
   const { data: cards = [] } = useCreditCards();
@@ -33,7 +35,18 @@ export default function HistoryPage() {
 
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-5">
-      <h1 className="text-xl font-bold text-foreground">Histórico</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground">Histórico</h1>
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Importar planilha
+        </button>
+      </div>
+
+      {showImport && <ImportWizard onClose={() => setShowImport(false)} />}
 
       <div className="flex items-center gap-3">
         {[year - 1, year, year + 1].map(y => (

@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, CreditCard, Lightbulb, Target, Receipt, Plus } from 'lucide-react';
+import { TrendingUp, TrendingDown, CreditCard, Target, Receipt, Plus } from 'lucide-react';
+import AIInsights from '@/components/AIInsights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -135,28 +136,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Insights */}
+      {/* AI Insights */}
       <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Lightbulb className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Insights</h2>
-        </div>
-        {transactions.length === 0 ? (
-          <div className="rounded-xl bg-card p-4">
-            <p className="text-sm text-muted-foreground">
-              Adicione receitas e despesas para ver insights sobre suas finanças.
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-xl bg-card p-4 space-y-2">
-            <p className="text-sm text-muted-foreground">
-              📊 Você gastou <span className="font-semibold text-foreground">{formatCurrency(summary.despesas_dinheiro + summary.despesas_cartao)}</span> até agora em {formatMonthLabel(currentMonth)}.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              💡 Se mantiver esse ritmo, terá <span className="font-semibold text-success">{formatCurrency(summary.saldo_comprometido)}</span> ao final do mês.
-            </p>
-          </div>
-        )}
+        <AIInsights />
       </div>
 
       {/* PJ */}
