@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, Trash2 } from 'lucide-react';
+import { Search, Trash2, Upload } from 'lucide-react';
 import { useTransactions, useDeleteTransaction } from '@/hooks/useTransactions';
+import ImportWizard from '@/components/ImportWizard';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { formatCurrency, formatDate, formatMonthLabel, getCurrentYear } from '@/utils/billing';
 import { CATEGORIES } from '@/types/finance';
