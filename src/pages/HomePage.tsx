@@ -41,9 +41,19 @@ export default function HomePage() {
   return (
     <div className="animate-fade-in space-y-6 px-5 pt-14">
       {/* Header */}
-      <div>
-        <p className="text-sm text-muted-foreground">Olá,</p>
-        <h1 className="text-2xl font-bold text-foreground">{profile?.nome || 'Usuário'} 👋</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Olá,</p>
+          <h1 className="text-2xl font-bold text-foreground">{profile?.nome || 'Usuário'} 👋</h1>
+        </div>
+        <button
+          onClick={() => navigate('/perfil')}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-card"
+        >
+          <span className="text-sm font-bold text-primary">
+            {(profile?.nome || 'U').charAt(0).toUpperCase()}
+          </span>
+        </button>
       </div>
 
       {/* Balance Card */}
