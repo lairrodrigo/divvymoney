@@ -301,7 +301,12 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
 
     let imported = 0;
     let skipped = 0;
-    const batch: Array<Record<string, unknown>> = [];
+    const batch: Array<{
+      user_id: string; created_by: string; tipo: string; subtipo: string;
+      valor: number; descricao: string; categoria: string; transaction_date: string;
+      reference_month: string; reference_year: number; origem: string;
+      parcelado: boolean; parcela_atual: number; total_parcelas: number;
+    }> = [];
 
     for (const row of validRows) {
       if (existingHashes.has(row.hash)) {
