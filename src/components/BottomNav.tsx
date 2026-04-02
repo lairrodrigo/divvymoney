@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Clock, Plus, Target, User } from 'lucide-react';
+import { Home, Clock, Plus, Target, Users, User } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/historico', icon: Clock, label: 'Histórico' },
   { path: '/adicionar', icon: Plus, label: 'Adicionar', accent: true },
   { path: '/metas', icon: Target, label: 'Metas' },
-  { path: '/perfil', icon: User, label: 'Perfil' },
+  { path: '/espacos', icon: Users, label: 'Espaços' },
 ];
 
 export default function BottomNav() {
