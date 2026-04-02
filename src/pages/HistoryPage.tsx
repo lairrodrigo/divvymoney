@@ -35,7 +35,18 @@ export default function HistoryPage() {
 
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-5">
-      <h1 className="text-xl font-bold text-foreground">Histórico</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground">Histórico</h1>
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Importar planilha
+        </button>
+      </div>
+
+      {showImport && <ImportWizard onClose={() => setShowImport(false)} />}
 
       <div className="flex items-center gap-3">
         {[year - 1, year, year + 1].map(y => (
