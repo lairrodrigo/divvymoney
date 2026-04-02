@@ -14,13 +14,282 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      credit_cards: {
+        Row: {
+          created_at: string | null
+          fechamento_dia: number
+          id: string
+          limite: number
+          nome: string
+          updated_at: string | null
+          user_id: string
+          vencimento_dia: number
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fechamento_dia: number
+          id?: string
+          limite?: number
+          nome: string
+          updated_at?: string | null
+          user_id: string
+          vencimento_dia: number
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fechamento_dia?: number
+          id?: string
+          limite?: number
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+          vencimento_dia?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_cards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          prazo: string
+          updated_at: string | null
+          user_id: string
+          valor_alvo: number
+          valor_atual: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          prazo: string
+          updated_at?: string | null
+          user_id: string
+          valor_alvo: number
+          valor_atual?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          prazo?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_alvo?: number
+          valor_atual?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string | null
+          onboarding_complete: boolean | null
+          pj_ativo: boolean | null
+          regime_tributario: string | null
+          renda_principal: number | null
+          saldo_inicial: number | null
+          tipo_pessoa: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome?: string | null
+          onboarding_complete?: boolean | null
+          pj_ativo?: boolean | null
+          regime_tributario?: string | null
+          renda_principal?: number | null
+          saldo_inicial?: number | null
+          tipo_pessoa?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string | null
+          onboarding_complete?: boolean | null
+          pj_ativo?: boolean | null
+          regime_tributario?: string | null
+          renda_principal?: number | null
+          saldo_inicial?: number | null
+          tipo_pessoa?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          cartao_id: string | null
+          categoria: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          id: string
+          origem: string | null
+          parcela_atual: number | null
+          parcelado: boolean | null
+          reference_month: string
+          reference_year: number
+          subtipo: string
+          tipo: string
+          total_parcelas: number | null
+          transaction_date: string
+          updated_at: string | null
+          user_id: string
+          valor: number
+          workspace_id: string | null
+        }
+        Insert: {
+          cartao_id?: string | null
+          categoria: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          id?: string
+          origem?: string | null
+          parcela_atual?: number | null
+          parcelado?: boolean | null
+          reference_month: string
+          reference_year: number
+          subtipo: string
+          tipo: string
+          total_parcelas?: number | null
+          transaction_date: string
+          updated_at?: string | null
+          user_id: string
+          valor: number
+          workspace_id?: string | null
+        }
+        Update: {
+          cartao_id?: string | null
+          categoria?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          origem?: string | null
+          parcela_atual?: number | null
+          parcelado?: boolean | null
+          reference_month?: string
+          reference_year?: number
+          subtipo?: string
+          tipo?: string
+          total_parcelas?: number | null
+          transaction_date?: string
+          updated_at?: string | null
+          user_id?: string
+          valor?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
