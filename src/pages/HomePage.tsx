@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, CreditCard, Lightbulb, Target, Receipt, Plus } from 'lucide-react';
+import { TrendingUp, TrendingDown, CreditCard, Target, Receipt, Plus } from 'lucide-react';
+import AIInsights from '@/components/AIInsights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTransactions } from '@/hooks/useTransactions';
