@@ -9,6 +9,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import AddTransactionPage from "@/pages/AddTransactionPage";
 import GoalsPage from "@/pages/GoalsPage";
 import ProfilePage from "@/pages/ProfilePage";
+import WorkspacePage from "@/pages/WorkspacePage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
 
