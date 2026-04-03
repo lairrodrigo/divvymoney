@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Users, Plus, Trash2, UserPlus, ArrowLeft, Receipt, X } from 'lucide-react';
+import { Users, Plus, Trash2, UserPlus, ArrowLeft, Receipt, X, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkspaces, useCreateWorkspace, useWorkspaceMembers, useWorkspaceTransactions, useInviteByUserId, useRemoveMember, useDeleteWorkspace } from '@/hooks/useWorkspaces';
+import { useWorkspaces, useCreateWorkspace, useWorkspaceMembers, useWorkspaceTransactions, useInviteMemberByEmail, useRemoveMember, useDeleteWorkspace } from '@/hooks/useWorkspaces';
 import { formatCurrency, formatDate, formatMonthLabel, getCurrentMonth } from '@/utils/billing';
 import { useToast } from '@/hooks/use-toast';
 
@@ -10,7 +10,7 @@ export default function WorkspacePage() {
   const { data: workspaces = [], isLoading } = useWorkspaces();
   const createWorkspace = useCreateWorkspace();
   const deleteWorkspace = useDeleteWorkspace();
-  const inviteByUserId = useInviteByUserId();
+  const inviteMember = useInviteMemberByEmail();
   const removeMember = useRemoveMember();
   const { toast } = useToast();
 
@@ -37,13 +37,12 @@ export default function WorkspacePage() {
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !selectedWsId) return;
     try {
-      // For MVP we accept user ID directly (UUID)
-      await inviteByUserId.mutateAsync({ workspaceId: selectedWsId, userId: inviteEmail.trim() });
+      await inviteMember.mutateAsync({ workspaceId: selectedWsId, email: inviteEmail.trim() });
       toast({ title: 'Membro adicionado! ✅' });
       setInviteEmail('');
       setShowInvite(false);
-    } catch {
-      toast({ title: 'Erro ao convidar. Verifique o ID do usuário.', variant: 'destructive' });
+    } catch (e: any) {
+      toast({ title: e?.message || 'Erro ao convidar membro', variant: 'destructive' });
     }
   };
 
@@ -58,7 +57,7 @@ export default function WorkspacePage() {
         inviteEmail={inviteEmail}
         setInviteEmail={setInviteEmail}
         onInvite={handleInvite}
-        invitePending={inviteByUserId.isPending}
+        invitePending={inviteMember.isPending}
         onRemoveMember={(uid) => removeMember.mutate({ workspaceId: selectedWsId, userId: uid })}
         onDelete={() => {
           deleteWorkspace.mutate(selectedWsId);
@@ -77,28 +76,19 @@ export default function WorkspacePage() {
           </div>
           <h1 className="text-xl font-bold text-foreground">Espaços</h1>
         </div>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10"
-        >
+        <button onClick={() => setShowCreate(!showCreate)}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
           {showCreate ? <X className="h-4 w-4 text-primary" /> : <Plus className="h-4 w-4 text-primary" />}
         </button>
       </div>
 
       {showCreate && (
         <div className="rounded-xl bg-card p-4 space-y-3 animate-fade-in">
-          <input
-            type="text"
-            value={wsName}
-            onChange={e => setWsName(e.target.value)}
+          <input type="text" value={wsName} onChange={e => setWsName(e.target.value)}
             placeholder="Nome do espaço compartilhado"
-            className="w-full rounded-lg bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <button
-            onClick={handleCreate}
-            disabled={createWorkspace.isPending}
-            className="w-full rounded-lg gradient-gold py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-          >
+            className="w-full rounded-lg bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+          <button onClick={handleCreate} disabled={createWorkspace.isPending}
+            className="w-full rounded-lg gradient-gold py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">
             {createWorkspace.isPending ? 'Criando...' : 'Criar espaço'}
           </button>
         </div>
@@ -114,21 +104,16 @@ export default function WorkspacePage() {
           <p className="text-sm text-muted-foreground">
             Crie um espaço compartilhado para gerenciar finanças com outra pessoa.
           </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="rounded-xl gradient-gold px-6 py-3 text-sm font-bold text-primary-foreground"
-          >
+          <button onClick={() => setShowCreate(true)}
+            className="rounded-xl gradient-gold px-6 py-3 text-sm font-bold text-primary-foreground">
             Criar primeiro espaço
           </button>
         </div>
       ) : (
         <div className="space-y-3">
           {workspaces.map(ws => (
-            <button
-              key={ws.id}
-              onClick={() => setSelectedWsId(ws.id)}
-              className="w-full text-left rounded-xl bg-card p-4 transition-colors hover:bg-card/80"
-            >
+            <button key={ws.id} onClick={() => setSelectedWsId(ws.id)}
+              className="w-full text-left rounded-xl bg-card p-4 transition-colors hover:bg-card/80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
@@ -140,9 +125,7 @@ export default function WorkspacePage() {
                   </div>
                 </div>
                 {ws.owner_id === user?.id && (
-                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    Dono
-                  </span>
+                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Dono</span>
                 )}
               </div>
             </button>
@@ -154,29 +137,15 @@ export default function WorkspacePage() {
 }
 
 function WorkspaceDetail({
-  workspace,
-  userId,
-  onBack,
-  showInvite,
-  setShowInvite,
-  inviteEmail,
-  setInviteEmail,
-  onInvite,
-  invitePending,
-  onRemoveMember,
-  onDelete,
+  workspace, userId, onBack, showInvite, setShowInvite,
+  inviteEmail, setInviteEmail, onInvite, invitePending, onRemoveMember, onDelete,
 }: {
   workspace: { id: string; nome: string; owner_id: string; role: string };
-  userId: string;
-  onBack: () => void;
-  showInvite: boolean;
-  setShowInvite: (v: boolean) => void;
-  inviteEmail: string;
-  setInviteEmail: (v: string) => void;
-  onInvite: () => void;
-  invitePending: boolean;
-  onRemoveMember: (uid: string) => void;
-  onDelete: () => void;
+  userId: string; onBack: () => void;
+  showInvite: boolean; setShowInvite: (v: boolean) => void;
+  inviteEmail: string; setInviteEmail: (v: string) => void;
+  onInvite: () => void; invitePending: boolean;
+  onRemoveMember: (uid: string) => void; onDelete: () => void;
 }) {
   const { data: members = [] } = useWorkspaceMembers(workspace.id);
   const { data: transactions = [], isLoading: loadingTx } = useWorkspaceTransactions(workspace.id);
@@ -189,7 +158,6 @@ function WorkspaceDetail({
 
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-6 pb-8">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
           <ArrowLeft className="h-4 w-4 text-foreground" />
@@ -225,10 +193,8 @@ function WorkspaceDetail({
             <h2 className="text-sm font-semibold text-foreground">Membros</h2>
           </div>
           {isOwner && (
-            <button
-              onClick={() => setShowInvite(!showInvite)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10"
-            >
+            <button onClick={() => setShowInvite(!showInvite)}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
               {showInvite ? <X className="h-3.5 w-3.5 text-primary" /> : <UserPlus className="h-3.5 w-3.5 text-primary" />}
             </button>
           )}
@@ -237,20 +203,16 @@ function WorkspaceDetail({
         {showInvite && (
           <div className="rounded-xl bg-card p-4 space-y-3 mb-3 animate-fade-in">
             <p className="text-xs text-muted-foreground">
-              Informe o ID do usuário para convidar. O usuário precisa ter uma conta no app.
+              Informe o email da pessoa que deseja convidar. Ela precisa ter uma conta no app.
             </p>
-            <input
-              type="text"
-              value={inviteEmail}
-              onChange={e => setInviteEmail(e.target.value)}
-              placeholder="ID do usuário (UUID)"
-              className="w-full rounded-lg bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            <button
-              onClick={onInvite}
-              disabled={invitePending}
-              className="w-full rounded-lg gradient-gold py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-            >
+            <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+            </div>
+            <button onClick={onInvite} disabled={invitePending}
+              className="w-full rounded-lg gradient-gold py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">
               {invitePending ? 'Convidando...' : 'Convidar membro'}
             </button>
           </div>
