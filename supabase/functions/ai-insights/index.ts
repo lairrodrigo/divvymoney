@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Fetch user transactions (last 12 months)
     const { data: transactions = [] } = await supabase
       .from('transactions')
       .select('tipo, subtipo, valor, categoria, reference_month, reference_year, descricao, origem')
@@ -31,7 +30,6 @@ Deno.serve(async (req) => {
       .order('transaction_date', { ascending: false })
       .limit(500)
 
-    // Fetch profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('pj_ativo, regime_tributario, renda_principal')
@@ -80,35 +78,46 @@ Deno.serve(async (req) => {
 Dados:
 ${summaryLines.join('\n')}`
 
-    // Call AI via Lovable gateway
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
-    const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'Você é um assistente financeiro brasileiro. Responda sempre em JSON válido.' },
-          { role: 'user', content: prompt },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    })
+    // Try AI call
+    let aiInsights: { icon: string; text: string }[] | null = null
+    try {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+      if (LOVABLE_API_KEY) {
+        const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: 'Você é um assistente financeiro brasileiro. Responda sempre em JSON válido.' },
+              { role: 'user', content: prompt },
+            ],
+            response_format: { type: 'json_object' },
+          }),
+        })
 
-    if (!aiResponse.ok) {
-      // Fallback to rule-based insights
-      const insights = generateFallbackInsights(byMonth, currentMonth, prevMonth, profile)
-      return new Response(JSON.stringify({ insights }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json()
+          const content = aiData.choices?.[0]?.message?.content
+          if (content) {
+            const parsed = JSON.parse(content)
+            aiInsights = parsed.insights
+          }
+        }
+      }
+    } catch (e) {
+      console.log('AI gateway unavailable, using fallback:', e.message)
     }
 
-    const aiData = await aiResponse.json()
-    const content = aiData.choices?.[0]?.message?.content
-    const parsed = JSON.parse(content)
+    // If AI failed, use rule-based fallback
+    if (!aiInsights) {
+      aiInsights = generateFallbackInsights(byMonth, currentMonth, prevMonth, profile)
+    }
 
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify({ insights: aiInsights }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
