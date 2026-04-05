@@ -287,13 +287,10 @@ export type Database = {
     }
     Functions: {
       has_workspace_write_role: {
-        Args: { _user_id: string; _workspace_id: string }
+        Args: { _workspace_id: string }
         Returns: boolean
       }
-      is_workspace_member: {
-        Args: { _user_id: string; _workspace_id: string }
-        Returns: boolean
-      }
+      is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
