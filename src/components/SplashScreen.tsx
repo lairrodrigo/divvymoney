@@ -11,8 +11,8 @@ export default function SplashScreen() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0A0A0A] animate-out fade-out duration-1000 fill-mode-forwards">
-      <div className="relative h-32 w-32 animate-in zoom-in-50 duration-700">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000000] animate-out fade-out duration-1000 fill-mode-forwards">
+      <div className="relative h-36 w-36 animate-in zoom-in-50 duration-700">
         <img 
           src="/logo.png" 
           alt="DivvyMoney Logo" 

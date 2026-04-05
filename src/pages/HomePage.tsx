@@ -58,11 +58,11 @@ export default function HomePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 overflow-hidden rounded-xl border border-border/40 shadow-sm transition-transform active:scale-95">
+          <div className="h-10 w-10 transition-transform active:scale-95">
             <img 
               src="/logo.png" 
               alt="DivvyMoney" 
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
           <WorkspaceSelector />

@@ -23,15 +23,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0A0A0A] px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#000000] px-6">
       <div className="w-full max-w-sm space-y-8 text-center animate-in fade-in zoom-in-95 duration-700">
         {/* Logo */}
         <div className="flex flex-col items-center gap-4">
-          <div className="h-24 w-24 overflow-hidden rounded-3xl shadow-2xl shadow-primary/20 transition-transform hover:scale-105 duration-500">
+          <div className="h-28 w-28 transition-transform hover:scale-105 duration-500">
             <img 
               src="/logo.png" 
               alt="DivvyMoney Logo" 
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
           <div className="space-y-1">
