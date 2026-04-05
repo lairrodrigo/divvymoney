@@ -37,10 +37,6 @@ export function useCreateWorkspace() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      // Trigger auto-creates owner member row on some setups, 
-      // but here we manually handle if needed. 
-      // Our SQL migration didn't include a trigger, so we might need to insert the member too.
-      // Actually, standard practice is a trigger or dual insert.
       const { data: ws, error: wsErr } = await supabase
         .from('workspaces')
         .insert({ name, created_by: user!.id })
@@ -48,14 +44,6 @@ export function useCreateWorkspace() {
         .single();
         
       if (wsErr) throw wsErr;
-
-      // Add the creator as owner
-      const { error: mErr } = await supabase
-        .from('workspace_members')
-        .insert({ workspace_id: ws.id, user_id: user!.id, role: 'owner' });
-      
-      if (mErr) throw mErr;
-
       return ws;
     },
     onSuccess: () => {

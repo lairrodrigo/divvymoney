@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Workspace {
   id: string;
@@ -75,49 +75,68 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const [isCreating, setIsCreating] = useState(false);
+  const queryClient = useQueryClient();
+
   // Auto-create default workspace for new users
   useEffect(() => {
     const createDefaults = async () => {
-      if (!isLoading && authReady && user && workspaces.length === 0) {
+      if (!isLoading && authReady && user && workspaces.length === 0 && !isCreating) {
+        setIsCreating(true);
         console.log("Onboarding: Creating default workspace...");
         
-        // 1. Create Workspace
-        const { data: ws, error: wsErr } = await supabase
-          .from("workspaces")
-          .insert({ name: "Particular", created_by: user.id })
-          .select()
-          .single();
+        try {
+          // 1. Create Workspace
+          const { data: ws, error: wsErr } = await supabase
+            .from("workspaces")
+            .insert({ name: "Particular", created_by: user.id })
+            .select()
+            .single();
 
-        if (wsErr || !ws) return;
+          if (wsErr || !ws) {
+            console.error("Workspace creation failed:", wsErr);
+            setIsCreating(false);
+            return;
+          }
 
-        // 2. Create Membership (Owner)
-        await supabase.from("workspace_members").insert({
-          workspace_id: ws.id,
-          user_id: user.id,
-          role: "owner",
-        });
+          // 2. Create Membership (Owner)
+          const { error: mErr } = await supabase.from("workspace_members").insert({
+            workspace_id: ws.id,
+            user_id: user.id,
+            role: "owner",
+          });
 
-        // 3. Create Default Account (Carteira)
-        await supabase.from("accounts").insert({
-          workspace_id: ws.id,
-          name: "Carteira",
-          type: "cash",
-        });
+          if (mErr) {
+            console.error("Membership creation failed:", mErr);
+            setIsCreating(false);
+            return;
+          }
 
-        // 4. Create Default Category (Geral)
-        await supabase.from("categories").insert({
-          workspace_id: ws.id,
-          name: "Geral",
-          type: "expense",
-        });
+          // 3. Create Default Account (Carteira)
+          await supabase.from("accounts").insert({
+            workspace_id: ws.id,
+            name: "Carteira",
+            type: "cash",
+          });
 
-        // Force refresh workspaces query
-        window.location.reload(); 
+          // 4. Create Default Category (Geral)
+          await supabase.from("categories").insert({
+            workspace_id: ws.id,
+            name: "Geral",
+            type: "expense",
+          });
+
+          await queryClient.invalidateQueries({ queryKey: ["my_workspaces", user.id] });
+        } catch (e) {
+          console.error("Onboarding error:", e);
+        } finally {
+          setIsCreating(false);
+        }
       }
     };
 
     createDefaults();
-  }, [isLoading, workspaces, authReady, user]);
+  }, [isLoading, authReady, user, queryClient, workspaces.length, isCreating]);
 
   // Auto-select first workspace if none selected
   useEffect(() => {
@@ -134,7 +153,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         activeWorkspaceId,
         setActiveWorkspaceId,
         workspaces,
-        isLoading,
+        isLoading: isLoading || isCreating,
         activeWorkspace,
       }}
     >
