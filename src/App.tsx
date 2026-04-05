@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -43,8 +44,14 @@ function ProtectedRoutes() {
 
 function AppRoutes() {
   const { user, isReady } = useAuth();
+  const [minSplashReady, setMinSplashReady] = useState(false);
 
-  if (!isReady) return <SplashScreen />;
+  useEffect(() => {
+    const timer = setTimeout(() => setMinSplashReady(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isReady || !minSplashReady) return <SplashScreen />;
 
   return (
     <Routes>
