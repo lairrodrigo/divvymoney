@@ -37,18 +37,13 @@ export function useCreateWorkspace() {
 
   return useMutation({
     mutationFn: async (nome: string) => {
+      // Trigger auto-creates owner member row
       const { data: ws, error: wsErr } = await supabase
         .from('workspaces')
         .insert({ nome, owner_id: user!.id })
         .select()
         .single();
       if (wsErr) throw wsErr;
-
-      const { error: memErr } = await supabase
-        .from('workspace_members')
-        .insert({ workspace_id: ws.id, user_id: user!.id, role: 'owner' });
-      if (memErr) throw memErr;
-
       return ws;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['workspaces'] }),
