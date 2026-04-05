@@ -17,7 +17,7 @@ export default function WorkspaceSelector() {
     return <Briefcase className="h-4 w-4" />;
   };
 
-  if (workspaces.length <= 1 && !activeWorkspace) return null;
+  if (!activeWorkspace && workspaces.length === 0) return null;
 
   return (
     <DropdownMenu>

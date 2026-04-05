@@ -75,6 +75,50 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Auto-create default workspace for new users
+  useEffect(() => {
+    const createDefaults = async () => {
+      if (!isLoading && authReady && user && workspaces.length === 0) {
+        console.log("Onboarding: Creating default workspace...");
+        
+        // 1. Create Workspace
+        const { data: ws, error: wsErr } = await supabase
+          .from("workspaces")
+          .insert({ name: "Particular", created_by: user.id })
+          .select()
+          .single();
+
+        if (wsErr || !ws) return;
+
+        // 2. Create Membership (Owner)
+        await supabase.from("workspace_members").insert({
+          workspace_id: ws.id,
+          user_id: user.id,
+          role: "owner",
+        });
+
+        // 3. Create Default Account (Carteira)
+        await supabase.from("accounts").insert({
+          workspace_id: ws.id,
+          name: "Carteira",
+          type: "cash",
+        });
+
+        // 4. Create Default Category (Geral)
+        await supabase.from("categories").insert({
+          workspace_id: ws.id,
+          name: "Geral",
+          type: "expense",
+        });
+
+        // Force refresh workspaces query
+        window.location.reload(); 
+      }
+    };
+
+    createDefaults();
+  }, [isLoading, workspaces, authReady, user]);
+
   // Auto-select first workspace if none selected
   useEffect(() => {
     if (!isLoading && workspaces.length > 0 && !activeWorkspaceId) {
