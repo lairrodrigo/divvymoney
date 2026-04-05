@@ -62,9 +62,9 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
- #lovable-badge {
-   display: nome :important;
- }
+#lovable-badge {
+  display: none !important;
+}
 
 @layer utilities {
   .gradient-gold {
