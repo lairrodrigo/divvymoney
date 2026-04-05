@@ -2,19 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function useTransactions(referenceYear?: number) {
-  const { user, isReady } = useAuth();
-
+export function useTransactions(workspaceId: string | null) {
   return useQuery({
-    queryKey: ['transactions', user?.id, referenceYear],
+    queryKey: ['transactions', workspaceId],
     queryFn: async () => {
-      let q = supabase.from('transactions').select('*').eq('user_id', user!.id);
-      if (referenceYear) q = q.eq('reference_year', referenceYear);
-      const { data, error } = await q.order('transaction_date', { ascending: false });
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
-    enabled: isReady && !!user,
+    enabled: !!workspaceId,
   });
 }
 
@@ -24,39 +25,38 @@ export function useAddTransaction() {
 
   return useMutation({
     mutationFn: async (tx: {
-      tipo: string;
-      subtipo: string;
-      valor: number;
-      descricao: string;
-      categoria: string;
-      transaction_date: string;
-      reference_month: string;
-      reference_year: number;
-      cartao_id?: string | null;
-      parcelado: boolean;
-      parcela_atual: number;
-      total_parcelas: number;
+      workspace_id: string;
+      category_id: string;
+      account_id: string;
+      type: 'income' | 'expense';
+      amount: number;
+      description: string;
+      date: string;
+      paid_by_user_id?: string;
+      assigned_to_user_id?: string;
+      is_shared?: boolean;
     }) => {
       const { data, error } = await supabase.from('transactions').insert({
         ...tx,
-        user_id: user!.id,
-        created_by: user!.id,
-        origem: 'manual' as const,
+        created_by_user_id: user!.id,
       }).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['transactions'] }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['transactions', variables.workspace_id] });
+    },
   });
 }
 
 export function useDeleteTransaction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, workspaceId }: { id: string; workspaceId: string }) => {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['transactions'] }),
+    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['transactions', variables.workspaceId] }),
   });
 }
+

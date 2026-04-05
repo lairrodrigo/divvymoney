@@ -113,18 +113,18 @@ export default function WorkspacePage() {
         <div className="space-y-3">
           {workspaces.map(ws => (
             <button key={ws.id} onClick={() => setSelectedWsId(ws.id)}
-              className="w-full text-left rounded-xl bg-card p-4 transition-colors hover:bg-card/80">
+              className="w-full text-left rounded-xl bg-card p-4 transition-colors hover:bg-card/80 border border-border/40 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                     <Users className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{ws.nome}</p>
+                    <p className="text-sm font-semibold text-foreground">{ws.name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{ws.role}</p>
                   </div>
                 </div>
-                {ws.owner_id === user?.id && (
+                {ws.created_by === user?.id && (
                   <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Dono</span>
                 )}
               </div>
@@ -140,7 +140,7 @@ function WorkspaceDetail({
   workspace, userId, onBack, showInvite, setShowInvite,
   inviteEmail, setInviteEmail, onInvite, invitePending, onRemoveMember, onDelete,
 }: {
-  workspace: { id: string; nome: string; owner_id: string; role: string };
+  workspace: { id: string; name: string; created_by: string; role: string };
   userId: string; onBack: () => void;
   showInvite: boolean; setShowInvite: (v: boolean) => void;
   inviteEmail: string; setInviteEmail: (v: string) => void;
@@ -149,12 +149,12 @@ function WorkspaceDetail({
 }) {
   const { data: members = [] } = useWorkspaceMembers(workspace.id);
   const { data: transactions = [], isLoading: loadingTx } = useWorkspaceTransactions(workspace.id);
-  const isOwner = workspace.owner_id === userId;
+  const isOwner = workspace.role === 'owner';
 
   const currentMonth = getCurrentMonth();
-  const monthTx = transactions.filter(t => t.reference_month === currentMonth);
-  const receitas = monthTx.filter(t => t.tipo === 'receita').reduce((s, t) => s + Number(t.valor), 0);
-  const despesas = monthTx.filter(t => t.tipo === 'despesa').reduce((s, t) => s + Number(t.valor), 0);
+  const monthTx = transactions.filter(t => t.date?.startsWith(currentMonth));
+  const receitas = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const despesas = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-6 pb-8">
@@ -163,7 +163,7 @@ function WorkspaceDetail({
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-foreground">{workspace.nome}</h1>
+          <h1 className="text-lg font-bold text-foreground">{workspace.name}</h1>
           <p className="text-xs text-muted-foreground">{members.length} membro(s)</p>
         </div>
         {isOwner && (
@@ -257,22 +257,19 @@ function WorkspaceDetail({
         ) : (
           <div className="space-y-2">
             {transactions.slice(0, 20).map(tx => (
-              <div key={tx.id} className="rounded-xl bg-card px-4 py-3">
+              <div key={tx.id} className="rounded-xl bg-card px-4 py-3 border border-border/40 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{tx.descricao}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{tx.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {tx.categoria} • {formatDate(tx.transaction_date)}
-                      {tx.created_by && tx.created_by !== userId && (
+                      {tx.date ? formatDate(tx.date) : ''}
+                      {tx.created_by_user_id && tx.created_by_user_id !== userId && (
                         <span className="ml-1 text-primary"> • por outro membro</span>
-                      )}
-                      {tx.created_by === userId && (
-                        <span className="ml-1 text-muted-foreground/70"> • por você</span>
                       )}
                     </p>
                   </div>
-                  <span className={`text-sm font-bold ${tx.tipo === 'receita' ? 'text-success' : 'text-destructive'}`}>
-                    {tx.tipo === 'receita' ? '+' : '-'}{formatCurrency(Number(tx.valor))}
+                  <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-success' : 'text-foreground'}`}>
+                    {tx.type === 'expense' ? '-' : '+'}{formatCurrency(Number(tx.amount))}
                   </span>
                 </div>
               </div>

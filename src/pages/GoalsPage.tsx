@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { Plus, Target, Trash2, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspacesContext } from '@/contexts/WorkspaceContext';
 import { useGoals, useAddGoal, useUpdateGoal, useDeleteGoal } from '@/hooks/useGoals';
 import { formatCurrency } from '@/utils/billing';
 import { useToast } from '@/hooks/use-toast';
 
 export default function GoalsPage() {
-  const { data: goals = [], isLoading } = useGoals();
+  const { user } = useAuth();
+  const { activeWorkspaceId } = useWorkspacesContext();
+  const { data: goals = [], isLoading } = useGoals(activeWorkspaceId);
   const addGoal = useAddGoal();
   const updateGoal = useUpdateGoal();
   const deleteGoal = useDeleteGoal();
@@ -42,9 +46,11 @@ export default function GoalsPage() {
       return;
     }
     try {
+      if (!activeWorkspaceId) return;
       if (editingId) {
         await updateGoal.mutateAsync({
           id: editingId,
+          workspaceId: activeWorkspaceId,
           nome,
           valor_alvo: parseFloat(valorAlvo),
           valor_atual: parseFloat(valorAtual || '0'),
@@ -53,6 +59,7 @@ export default function GoalsPage() {
         toast({ title: 'Meta atualizada! ✅' });
       } else {
         await addGoal.mutateAsync({
+          workspace_id: activeWorkspaceId,
           nome,
           valor_alvo: parseFloat(valorAlvo),
           valor_atual: parseFloat(valorAtual || '0'),
@@ -145,8 +152,8 @@ export default function GoalsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-gradient-gold">{pct.toFixed(0)}%</span>
-                    <button onClick={e => { e.stopPropagation(); deleteGoal.mutate(goal.id); }}
+                     <span className="text-lg font-bold text-gradient-gold">{pct.toFixed(0)}%</span>
+                    <button onClick={e => { e.stopPropagation(); deleteGoal.mutate({ id: goal.id, workspaceId: activeWorkspaceId! }); console.log("Deleting", goal.id); }}
                       className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>

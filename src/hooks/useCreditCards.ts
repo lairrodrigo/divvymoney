@@ -2,47 +2,48 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function useCreditCards() {
-  const { user, isReady } = useAuth();
-
+export function useCreditCards(workspaceId: string | null) {
   return useQuery({
-    queryKey: ['credit_cards', user?.id],
+    queryKey: ['credit_cards', workspaceId],
     queryFn: async () => {
+      if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from('credit_cards')
+        .from('accounts')
         .select('*')
-        .eq('user_id', user!.id);
+        .eq('workspace_id', workspaceId)
+        .eq('type', 'credit_card');
       if (error) throw error;
       return data ?? [];
     },
-    enabled: isReady && !!user,
+    enabled: !!workspaceId,
   });
 }
 
 export function useAddCreditCard() {
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (card: { nome: string; limite: number; fechamento_dia: number; vencimento_dia: number }) => {
-      const { data, error } = await supabase.from('credit_cards').insert({
-        ...card,
-        user_id: user!.id,
+    mutationFn: async ({ workspaceId, name, limite }: { workspaceId: string; name: string; limite: number }) => {
+      const { data, error } = await supabase.from('accounts').insert({
+        workspace_id: workspaceId,
+        name,
+        type: 'credit_card',
       }).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['credit_cards'] }),
+    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['credit_cards', variables.workspaceId] }),
   });
 }
 
 export function useDeleteCreditCard() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('credit_cards').delete().eq('id', id);
+    mutationFn: async ({ id, workspaceId }: { id: string; workspaceId: string }) => {
+      const { error } = await supabase.from('accounts').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['credit_cards'] }),
+    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['credit_cards', variables.workspaceId] }),
   });
 }
+

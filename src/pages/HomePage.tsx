@@ -1,22 +1,35 @@
 import { TrendingUp, TrendingDown, CreditCard, Target, Receipt, Plus } from 'lucide-react';
 import AIInsights from '@/components/AIInsights';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspacesContext } from '@/contexts/WorkspaceContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { useGoals } from '@/hooks/useGoals';
 import { formatCurrency, getCurrentMonth, formatMonthLabel } from '@/utils/billing';
 import { useNavigate } from 'react-router-dom';
+import WorkspaceSelector from '@/components/WorkspaceSelector';
 
 function calculateSummary(
-  transactions: Array<{ tipo: string; subtipo: string; valor: number; reference_month: string }>,
+  transactions: any[],
   month: string,
+  accounts: any[],
   pjAtivo: boolean
 ) {
-  const monthTx = transactions.filter(t => t.reference_month === month);
-  const receitas = monthTx.filter(t => t.tipo === 'receita').reduce((s, t) => s + Number(t.valor), 0);
-  const despDinheiro = monthTx.filter(t => t.tipo === 'despesa' && t.subtipo === 'dinheiro').reduce((s, t) => s + Number(t.valor), 0);
-  const despCartao = monthTx.filter(t => t.tipo === 'despesa' && t.subtipo === 'cartao').reduce((s, t) => s + Number(t.valor), 0);
+  const monthTx = transactions.filter(t => t.date?.startsWith(month));
+  const receitas = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  
+  // Find which accounts are cards
+  const cardAccountIds = accounts.filter(a => a.type === 'credit_card').map(a => a.id);
+  
+  const despDinheiro = monthTx
+    .filter(t => t.type === 'expense' && !cardAccountIds.includes(t.account_id))
+    .reduce((s, t) => s + Number(t.amount), 0);
+    
+  const despCartao = monthTx
+    .filter(t => t.type === 'expense' && cardAccountIds.includes(t.account_id))
+    .reduce((s, t) => s + Number(t.amount), 0);
+    
   const impostos = pjAtivo ? receitas * 0.15 : 0;
   return {
     receitas,
@@ -30,26 +43,33 @@ function calculateSummary(
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { activeWorkspaceId } = useWorkspacesContext();
   const { data: profile } = useProfile();
-  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
-  const { data: cards = [] } = useCreditCards();
-  const { data: goals = [] } = useGoals();
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions(activeWorkspaceId);
+  const { data: cards = [] } = useCreditCards(activeWorkspaceId);
+  const { data: goals = [] } = useGoals(activeWorkspaceId);
 
   const currentMonth = getCurrentMonth();
   const pjAtivo = profile?.pj_ativo ?? false;
-  const summary = calculateSummary(transactions, currentMonth, pjAtivo);
+  const summary = calculateSummary(transactions, currentMonth, cards, pjAtivo);
 
   return (
     <div className="animate-fade-in space-y-6 px-5 pt-14">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Olá,</p>
-          <h1 className="text-2xl font-bold text-foreground">{profile?.nome || 'Usuário'} 👋</h1>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 overflow-hidden rounded-xl border border-border/40 shadow-sm transition-transform active:scale-95">
+            <img 
+              src="/logo.png" 
+              alt="DivvyMoney" 
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <WorkspaceSelector />
         </div>
         <button
           onClick={() => navigate('/perfil')}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-card"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm border border-border/40 transition-transform active:scale-95"
         >
           <span className="text-sm font-bold text-primary">
             {(profile?.nome || 'U').charAt(0).toUpperCase()}
@@ -113,22 +133,27 @@ export default function HomePage() {
           <div className="space-y-2">
             {cards.map(card => {
               const cardTotal = transactions
-                .filter(t => t.cartao_id === card.id && t.reference_month === currentMonth)
-                .reduce((s, t) => s + Number(t.valor), 0);
-              const pct = Math.min((cardTotal / Number(card.limite)) * 100, 100);
+                .filter(t => t.account_id === card.id && t.date?.startsWith(currentMonth))
+                .reduce((s, t) => s + Number(t.amount), 0);
+              // For now we don't have limit/closing_day in the new accounts table, 
+              // using defaults or placeholders until next DB update
+              const limit = 0; // card.limite || 0
+              const pct = limit > 0 ? Math.min((cardTotal / limit) * 100, 100) : 0;
               return (
-                <div key={card.id} className="rounded-xl bg-card p-4">
+                <div key={card.id} className="rounded-xl bg-card p-4 shadow-sm border border-border/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{card.nome}</span>
-                    <span className="text-xs text-muted-foreground">Fecha dia {card.fechamento_dia}</span>
+                    <span className="text-sm font-medium text-foreground">{card.name}</span>
+                    <span className="text-xs text-muted-foreground">Cartão</span>
                   </div>
                   <div className="mt-2 flex items-end justify-between">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(cardTotal)}</span>
-                    <span className="text-xs text-muted-foreground">de {formatCurrency(Number(card.limite))}</span>
+                    {limit > 0 && <span className="text-xs text-muted-foreground">de {formatCurrency(limit)}</span>}
                   </div>
-                  <div className="mt-2 h-1.5 rounded-full bg-secondary">
-                    <div className="h-full rounded-full gradient-gold transition-all duration-500" style={{ width: `${pct}%` }} />
-                  </div>
+                  {limit > 0 && (
+                    <div className="mt-2 h-1.5 rounded-full bg-secondary">
+                      <div className="h-full rounded-full gradient-gold transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
                 </div>
               );
             })}

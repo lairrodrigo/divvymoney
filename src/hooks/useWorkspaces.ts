@@ -24,7 +24,7 @@ export function useWorkspaces() {
 
       return (workspaces ?? []).map(ws => ({
         ...ws,
-        role: memberships.find(m => m.workspace_id === ws.id)?.role ?? 'member',
+        role: (memberships.find(m => m.workspace_id === ws.id)?.role as "owner" | "editor" | "viewer") ?? 'viewer',
       }));
     },
     enabled: isReady && !!user,
@@ -36,19 +36,35 @@ export function useCreateWorkspace() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (nome: string) => {
-      // Trigger auto-creates owner member row
+    mutationFn: async (name: string) => {
+      // Trigger auto-creates owner member row on some setups, 
+      // but here we manually handle if needed. 
+      // Our SQL migration didn't include a trigger, so we might need to insert the member too.
+      // Actually, standard practice is a trigger or dual insert.
       const { data: ws, error: wsErr } = await supabase
         .from('workspaces')
-        .insert({ nome, owner_id: user!.id })
+        .insert({ name, created_by: user!.id })
         .select()
         .single();
+        
       if (wsErr) throw wsErr;
+
+      // Add the creator as owner
+      const { error: mErr } = await supabase
+        .from('workspace_members')
+        .insert({ workspace_id: ws.id, user_id: user!.id, role: 'owner' });
+      
+      if (mErr) throw mErr;
+
       return ws;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['workspaces'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspaces'] });
+      qc.invalidateQueries({ queryKey: ['my_workspaces'] });
+    },
   });
 }
+
 
 export function useWorkspaceMembers(workspaceId: string | null) {
   return useQuery({
@@ -73,7 +89,7 @@ export function useWorkspaceTransactions(workspaceId: string | null) {
         .from('transactions')
         .select('*')
         .eq('workspace_id', workspaceId!)
-        .order('transaction_date', { ascending: false });
+        .order('date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },

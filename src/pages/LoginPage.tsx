@@ -1,4 +1,3 @@
-import { Wallet } from 'lucide-react';
 import { lovable } from '@/integrations/lovable';
 import { useState } from 'react';
 
@@ -24,17 +23,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm space-y-8 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0A0A0A] px-6">
+      <div className="w-full max-w-sm space-y-8 text-center animate-in fade-in zoom-in-95 duration-700">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-gold shadow-lg">
-            <Wallet className="h-8 w-8 text-primary-foreground" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-24 w-24 overflow-hidden rounded-3xl shadow-2xl shadow-primary/20 transition-transform hover:scale-105 duration-500">
+            <img 
+              src="/logo.png" 
+              alt="DivvyMoney Logo" 
+              className="h-full w-full object-cover"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gradient-gold">DivvyMoney</h1>
-          <p className="text-sm text-muted-foreground">
-            Controle financeiro inteligente
-          </p>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black tracking-tight text-white">DivvyMoney</h1>
+            <p className="text-sm font-medium text-muted-foreground/80">
+              Controle financeiro inteligente
+            </p>
+          </div>
         </div>
 
         {/* Features */}
