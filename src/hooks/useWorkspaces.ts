@@ -86,10 +86,20 @@ export function useInviteMemberByEmail() {
 
   return useMutation({
     mutationFn: async ({ workspaceId, email }: { workspaceId: string; email: string }) => {
-      const { data, error } = await supabase.functions.invoke('invite-member', {
-        body: { workspace_id: workspaceId, email },
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-member`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ workspace_id: workspaceId, email }),
       });
-      if (error) throw error;
+      
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao convidar membro. O Edge Function retornou status ' + response.status);
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
