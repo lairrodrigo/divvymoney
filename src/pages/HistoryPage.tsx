@@ -3,8 +3,7 @@ import { Search, Trash2, Upload } from 'lucide-react';
 import { useWorkspacesContext } from '@/contexts/WorkspaceContext';
 import { useTransactions, useDeleteTransaction } from '@/hooks/useTransactions';
 import ImportWizard from '@/components/ImportWizard';
-import { useAccounts } from '@/hooks/useAccounts';
-import { useCategories } from '@/hooks/useCategories';
+import { CATEGORIES } from '@/types/finance';
 import { formatCurrency, formatDate, formatMonthLabel, getCurrentYear } from '@/utils/billing';
 
 export default function HistoryPage() {
@@ -12,32 +11,29 @@ export default function HistoryPage() {
   const [year, setYear] = useState(getCurrentYear());
   const [view, setView] = useState<'mensal' | 'anual'>('mensal');
   const [search, setSearch] = useState('');
-  const [filterCatId, setFilterCatId] = useState('');
+  const [filterCat, setFilterCat] = useState('');
   const [showImport, setShowImport] = useState(false);
 
   const { data: allTx = [], isLoading } = useTransactions(activeWorkspaceId);
-  const { data: accounts = [] } = useAccounts(activeWorkspaceId);
-  const { data: categories = [] } = useCategories(activeWorkspaceId);
   const deleteTx = useDeleteTransaction();
 
   const filtered = allTx.filter(t => {
-    // Filter by year if in year view (basic implementation using date string)
-    if (year && !t.date?.startsWith(year.toString())) return false;
-    if (search && !t.description?.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCatId && t.category_id !== filterCatId) return false;
+    if (year && !t.transaction_date?.startsWith(year.toString())) return false;
+    if (search && !t.descricao?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterCat && t.categoria !== filterCat) return false;
     return true;
   });
 
   const byMonth = filtered.reduce((acc, t) => {
-    const month = t.date?.substring(0, 7) || 'Unknown';
+    const month = t.reference_month || t.transaction_date?.substring(0, 7) || 'Unknown';
     if (!acc[month]) acc[month] = [];
     acc[month].push(t);
     return acc;
   }, {} as Record<string, typeof filtered>);
 
   const sortedMonths = Object.keys(byMonth).sort().reverse();
-  const totalReceitas = filtered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const totalDespesas = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const totalReceitas = filtered.filter(t => t.tipo === 'receita').reduce((s, t) => s + Number(t.valor), 0);
+  const totalDespesas = filtered.filter(t => t.tipo === 'despesa').reduce((s, t) => s + Number(t.valor), 0);
 
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-5">
@@ -78,10 +74,10 @@ export default function HistoryPage() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
             className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
         </div>
-        <select value={filterCatId} onChange={e => setFilterCatId(e.target.value)}
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
           className="rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground outline-none">
           <option value="">Todas Categorias</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 
@@ -106,7 +102,7 @@ export default function HistoryPage() {
         <div className="space-y-5 pb-4">
           {sortedMonths.map(month => {
             const txs = byMonth[month];
-            const monthTotal = txs.reduce((s, t) => s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+            const monthTotal = txs.reduce((s, t) => s + (t.tipo === 'receita' ? Number(t.valor) : -Number(t.valor)), 0);
             return (
               <div key={month}>
                 <div className="mb-2 flex items-center justify-between">
@@ -116,35 +112,31 @@ export default function HistoryPage() {
                   </span>
                 </div>
                 <div className="space-y-1.5">
-                  {txs.map(t => {
-                    const category = categories.find(c => c.id === t.category_id);
-                    const account = accounts.find(a => a.id === t.account_id);
-                    return (
-                      <div key={t.id} className="flex items-center justify-between rounded-xl bg-card px-4 py-3 group border border-border/40 shadow-sm">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{t.description}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{category?.name || 'Sem categoria'}</span>
-                            {account && <span>• {account.name}</span>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <div className="text-right">
-                            <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-success' : 'text-foreground'}`}>
-                              {t.type === 'expense' ? '-' : '+'}{formatCurrency(Number(t.amount))}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">{t.date ? formatDate(t.date) : ''}</p>
-                          </div>
-                          <button
-                            onClick={() => deleteTx.mutate({ id: t.id, workspaceId: activeWorkspaceId! })}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-destructive transition-all"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                  {txs.map(t => (
+                    <div key={t.id} className="flex items-center justify-between rounded-xl bg-card px-4 py-3 group border border-border/40 shadow-sm">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{t.descricao}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{t.categoria}</span>
+                          <span>• {t.subtipo}</span>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-2 ml-3">
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${t.tipo === 'receita' ? 'text-success' : 'text-foreground'}`}>
+                            {t.tipo === 'despesa' ? '-' : '+'}{formatCurrency(Number(t.valor))}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{formatDate(t.transaction_date)}</p>
+                        </div>
+                        <button
+                          onClick={() => deleteTx.mutate({ id: t.id, workspaceId: activeWorkspaceId! })}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-destructive transition-all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

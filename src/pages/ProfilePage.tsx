@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LogOut, CreditCard, Tag, Building2, Plus, Trash2, X, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspacesContext } from '@/contexts/WorkspaceContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCreditCards, useAddCreditCard, useDeleteCreditCard } from '@/hooks/useCreditCards';
@@ -10,9 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
   const { signOut, user } = useAuth();
+  const { activeWorkspaceId } = useWorkspacesContext();
   const { data: profile } = useProfile();
-  const { data: transactions = [] } = useTransactions();
-  const { data: cards = [] } = useCreditCards();
+  const { data: transactions = [] } = useTransactions(activeWorkspaceId);
+  const { data: cards = [] } = useCreditCards(activeWorkspaceId);
   const addCard = useAddCreditCard();
   const deleteCard = useDeleteCreditCard();
   const { toast } = useToast();
@@ -35,6 +37,7 @@ export default function ProfilePage() {
     }
     try {
       await addCard.mutateAsync({
+        workspaceId: activeWorkspaceId ?? undefined,
         nome: cardNome,
         limite: parseFloat(cardLimite),
         fechamento_dia: parseInt(cardFechamento),

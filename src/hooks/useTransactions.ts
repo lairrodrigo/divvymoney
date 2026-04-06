@@ -11,7 +11,7 @@ export function useTransactions(workspaceId: string | null) {
         .from('transactions')
         .select('*')
         .eq('workspace_id', workspaceId)
-        .order('date', { ascending: false });
+        .order('transaction_date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -26,19 +26,24 @@ export function useAddTransaction() {
   return useMutation({
     mutationFn: async (tx: {
       workspace_id: string;
-      category_id: string;
-      account_id: string;
-      type: 'income' | 'expense';
-      amount: number;
-      description: string;
-      date: string;
-      paid_by_user_id?: string;
-      assigned_to_user_id?: string;
-      is_shared?: boolean;
+      tipo: 'receita' | 'despesa';
+      subtipo: 'dinheiro' | 'cartao';
+      valor: number;
+      descricao: string;
+      categoria: string;
+      transaction_date: string;
+      reference_month: string;
+      reference_year: number;
+      cartao_id?: string;
+      parcelado?: boolean;
+      parcela_atual?: number;
+      total_parcelas?: number;
+      origem?: string;
     }) => {
       const { data, error } = await supabase.from('transactions').insert({
         ...tx,
-        created_by_user_id: user!.id,
+        user_id: user!.id,
+        created_by: user!.id,
       }).select().single();
       if (error) throw error;
       return data;
@@ -59,4 +64,3 @@ export function useDeleteTransaction() {
     onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: ['transactions', variables.workspaceId] }),
   });
 }
-

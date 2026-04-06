@@ -24,8 +24,8 @@ export default function WorkspaceSelector() {
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full bg-secondary/50 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary">
         {activeWorkspace ? (
           <>
-            {getIcon(activeWorkspace.name)}
-            <span>{activeWorkspace.name}</span>
+            {getIcon(activeWorkspace.nome)}
+            <span>{activeWorkspace.nome}</span>
           </>
         ) : (
           <span>Selecionar Espaço</span>
@@ -39,8 +39,8 @@ export default function WorkspaceSelector() {
             onClick={() => setActiveWorkspaceId(ws.id)}
             className="flex items-center gap-2 cursor-pointer"
           >
-            {getIcon(ws.name)}
-            <span>{ws.name}</span>
+            {getIcon(ws.nome)}
+            <span>{ws.nome}</span>
             {activeWorkspace?.id === ws.id && (
               <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
             )}
