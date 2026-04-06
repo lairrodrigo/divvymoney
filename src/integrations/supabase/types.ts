@@ -14,68 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      accounts: {
+      credit_cards: {
         Row: {
-          id: string;
-          workspace_id: string;
-          name: string;
-          type: "cash" | "credit_card" | "bank";
-          created_at: string;
+          created_at: string | null
+          fechamento_dia: number
+          id: string
+          limite: number
+          nome: string
+          updated_at: string | null
+          user_id: string
+          vencimento_dia: number
+          workspace_id: string | null
         }
         Insert: {
-          id?: string;
-          workspace_id: string;
-          name: string;
-          type: "cash" | "credit_card" | "bank";
-          created_at?: string;
+          created_at?: string | null
+          fechamento_dia: number
+          id?: string
+          limite?: number
+          nome: string
+          updated_at?: string | null
+          user_id: string
+          vencimento_dia: number
+          workspace_id?: string | null
         }
         Update: {
-          id?: string;
-          workspace_id?: string;
-          name?: string;
-          type?: "cash" | "credit_card" | "bank";
-          created_at?: string;
+          created_at?: string | null
+          fechamento_dia?: number
+          id?: string
+          limite?: number
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+          vencimento_dia?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "accounts_workspace_id_fkey"
+            foreignKeyName: "credit_cards_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
-        ]
-      }
-      categories: {
-        Row: {
-          id: string;
-          workspace_id: string;
-          name: string;
-          type: "income" | "expense";
-          created_at: string;
-        }
-        Insert: {
-          id?: string;
-          workspace_id: string;
-          name: string;
-          type: "income" | "expense";
-          created_at?: string;
-        }
-        Update: {
-          id?: string;
-          workspace_id?: string;
-          name?: string;
-          type?: "income" | "expense";
-          created_at?: string;
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categories_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          }
+          },
         ]
       }
       goals: {
@@ -119,7 +99,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       profiles: {
@@ -166,51 +146,76 @@ export type Database = {
       }
       transactions: {
         Row: {
+          cartao_id: string | null
+          categoria: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string
           id: string
-          workspace_id: string
-          created_by_user_id: string
-          category_id: string | null
-          account_id: string | null
-          type: "income" | "expense"
-          amount: number
-          description: string | null
-          date: string | null
-          paid_by_user_id: string | null
-          assigned_to_user_id: string | null
-          is_shared: boolean
-          created_at: string
+          origem: string | null
+          parcela_atual: number | null
+          parcelado: boolean | null
+          reference_month: string
+          reference_year: number
+          subtipo: string
+          tipo: string
+          total_parcelas: number | null
+          transaction_date: string
+          updated_at: string | null
+          user_id: string
+          valor: number
+          workspace_id: string | null
         }
         Insert: {
+          cartao_id?: string | null
+          categoria: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
           id?: string
-          workspace_id: string
-          created_by_user_id: string
-          category_id?: string | null
-          account_id?: string | null
-          type: "income" | "expense"
-          amount: number
-          description?: string | null
-          date?: string | null
-          paid_by_user_id?: string | null
-          assigned_to_user_id?: string | null
-          is_shared?: boolean
-          created_at?: string
+          origem?: string | null
+          parcela_atual?: number | null
+          parcelado?: boolean | null
+          reference_month: string
+          reference_year: number
+          subtipo: string
+          tipo: string
+          total_parcelas?: number | null
+          transaction_date: string
+          updated_at?: string | null
+          user_id: string
+          valor: number
+          workspace_id?: string | null
         }
         Update: {
+          cartao_id?: string | null
+          categoria?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
           id?: string
-          workspace_id?: string
-          created_by_user_id?: string
-          category_id?: string | null
-          account_id?: string | null
-          type?: "income" | "expense"
-          amount?: number
-          description?: string | null
-          date?: string | null
-          paid_by_user_id?: string | null
-          assigned_to_user_id?: string | null
-          is_shared?: boolean
-          created_at?: string
+          origem?: string | null
+          parcela_atual?: number | null
+          parcelado?: boolean | null
+          reference_month?: string
+          reference_year?: number
+          subtipo?: string
+          tipo?: string
+          total_parcelas?: number | null
+          transaction_date?: string
+          updated_at?: string | null
+          user_id?: string
+          valor?: number
+          workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -218,41 +223,27 @@ export type Database = {
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "transactions_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          }
         ]
       }
       workspace_members: {
         Row: {
           created_at: string | null
           id: string
-          role: "owner" | "editor" | "viewer"
+          role: string
           user_id: string
           workspace_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          role?: "owner" | "editor" | "viewer"
+          role?: string
           user_id: string
           workspace_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          role?: "owner" | "editor" | "viewer"
+          role?: string
           user_id?: string
           workspace_id?: string
         }
@@ -263,27 +254,30 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       workspaces: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
-          name: string
-          created_by: string
+          nome: string
+          owner_id: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          name: string
-          created_by: string
+          nome: string
+          owner_id: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          name?: string
-          created_by?: string
+          nome?: string
+          owner_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
