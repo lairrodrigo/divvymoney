@@ -61,28 +61,31 @@ Deno.serve(async (req) => {
 
     // 3. Vincular ao workspace com role 'viewer' via upsert
     // Primeiro verifica se já existe para evitar erro de duplicidade ou atualizar a role
-    const { data: existingMember } = await adminClient
+    // Usamos select em vez de single para evitar erro PGRST116 se não encontrar
+    const { data: membersFound, error: findErr } = await adminClient
       .from('workspace_members')
       .select('id')
       .eq('workspace_id', workspace_id)
       .eq('user_id', target.id)
-      .single()
+
+    if (findErr) throw new Error(`Erro ao buscar membro existente: ${findErr.message}`)
+    const existingMember = membersFound && membersFound.length > 0 ? membersFound[0] : null
 
     if (existingMember) {
       const { error: updateErr } = await adminClient
         .from('workspace_members')
         .update({ role: 'viewer' })
         .eq('id', existingMember.id)
-      if (updateErr) throw updateErr
+      if (updateErr) throw new Error(`Erro ao atualizar papel do membro: ${updateErr.message}`)
     } else {
       const { error: insertErr } = await adminClient
         .from('workspace_members')
         .insert({
           workspace_id,
           user_id: target.id,
-          role: 'viewer', // Forçamos 'viewer' conforme pedido
+          role: 'viewer', 
         })
-      if (insertErr) throw insertErr
+      if (insertErr) throw new Error(`Erro ao inserir novo membro: ${insertErr.message}`)
     }
 
     return new Response(JSON.stringify({ success: true, user_id: target.id }), {
@@ -90,6 +93,7 @@ Deno.serve(async (req) => {
     })
   } catch (error) {
     console.error('Invite error:', error)
-    return new Response(JSON.stringify({ error: 'Erro interno ao convidar membro' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const message = error instanceof Error ? error.message : 'Erro interno desconhecido'
+    return new Response(JSON.stringify({ error: `Erro ao convidar: ${message}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
