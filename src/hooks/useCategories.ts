@@ -1,37 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// Categories table does not exist in this DB schema.
+// Categories are stored as text strings on transactions.
+// This hook is a stub to prevent import errors.
 
-export function useCategories(workspaceId: string | null) {
-  return useQuery({
-    queryKey: ['categories', workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('name', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!workspaceId,
-  });
+import { CATEGORIES } from '@/types/finance';
+
+export function useCategories(_workspaceId: string | null) {
+  // Return the static CATEGORIES list as fake data
+  const data = CATEGORIES.map((name, i) => ({ id: name, name, type: 'expense' as const }));
+  return { data, isLoading: false };
 }
 
 export function useCreateCategory() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ workspaceId, name, type }: { workspaceId: string; name: string; type: 'income' | 'expense' }) => {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert({ workspace_id: workspaceId, name, type })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ['categories', variables.workspaceId] });
-    },
-  });
+  return {
+    mutateAsync: async () => { throw new Error('categories table does not exist'); },
+    isPending: false,
+  };
 }

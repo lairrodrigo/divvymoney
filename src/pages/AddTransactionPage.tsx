@@ -2,57 +2,55 @@ import { useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, CreditCard, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspacesContext } from '@/contexts/WorkspaceContext';
-import { useCategories } from '@/hooks/useCategories';
-import { useAccounts } from '@/hooks/useAccounts';
-import { useWorkspaceMembers } from '@/hooks/useWorkspaces';
+import { useCreditCards } from '@/hooks/useCreditCards';
 import { useAddTransaction } from '@/hooks/useTransactions';
 import { formatCurrency, getCurrentMonth } from '@/utils/billing';
+import { CATEGORIES } from '@/types/finance';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-
-type TxMode = 'receita' | 'dinheiro' | 'cartao';
 
 export default function AddTransactionPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspacesContext();
-  
-  const { data: categories = [] } = useCategories(activeWorkspaceId);
-  const { data: accounts = [] } = useAccounts(activeWorkspaceId);
-  const { data: members = [] } = useWorkspaceMembers(activeWorkspaceId);
+
+  const { data: cards = [] } = useCreditCards(activeWorkspaceId);
   const addTx = useAddTransaction();
 
-  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [tipo, setTipo] = useState<'receita' | 'despesa'>('despesa');
+  const [subtipo, setSubtipo] = useState<'dinheiro' | 'cartao'>('dinheiro');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [accountId, setAccountId] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [cartaoId, setCartaoId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paidByUserId, setPaidByUserId] = useState('');
-  const [isShared, setIsShared] = useState(false);
 
-  const filteredCategories = categories.filter(c => c.type === type);
-  const creditCards = accounts.filter(a => a.type === 'credit_card');
+  const currentMonth = getCurrentMonth();
 
   const handleSubmit = async () => {
     if (!activeWorkspaceId) return;
-    if (!amount || !description || !categoryId || !accountId) {
+    if (!amount || !description || !categoria) {
       toast({ title: 'Preencha todos os campos', variant: 'destructive' });
       return;
     }
 
+    const [y, m] = date.split('-');
+    const refMonth = `${y}-${m}`;
+
     try {
       await addTx.mutateAsync({
         workspace_id: activeWorkspaceId,
-        type,
-        amount: parseFloat(amount),
-        description,
-        category_id: categoryId,
-        account_id: accountId,
-        date,
-        paid_by_user_id: paidByUserId || undefined,
-        is_shared: isShared,
+        tipo,
+        subtipo,
+        valor: parseFloat(amount),
+        descricao: description,
+        categoria,
+        transaction_date: date,
+        reference_month: refMonth,
+        reference_year: parseInt(y),
+        cartao_id: subtipo === 'cartao' && cartaoId ? cartaoId : undefined,
+        origem: 'manual',
       });
 
       toast({
@@ -66,34 +64,49 @@ export default function AddTransactionPage() {
     }
   };
 
-  const modes: { key: TxMode; label: string; icon: typeof ArrowUpCircle }[] = [
-    { key: 'receita', label: 'Receita', icon: ArrowUpCircle },
-    { key: 'dinheiro', label: 'Dinheiro', icon: ArrowDownCircle },
-    { key: 'cartao', label: 'Cartão', icon: CreditCard },
-  ];
-
   return (
     <div className="animate-fade-in px-5 pt-14 space-y-6">
       <h1 className="text-xl font-bold text-foreground">Adicionar</h1>
 
       <div className="flex gap-2">
         <button
-          onClick={() => setType('expense')}
+          onClick={() => setTipo('despesa')}
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all ${
-            type === 'expense' ? 'gradient-gold text-primary-foreground' : 'bg-card text-muted-foreground'
+            tipo === 'despesa' ? 'gradient-gold text-primary-foreground' : 'bg-card text-muted-foreground'
           }`}
         >
           <ArrowDownCircle className="h-4 w-4" />
           Despesa
         </button>
         <button
-          onClick={() => setType('income')}
+          onClick={() => setTipo('receita')}
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all ${
-            type === 'income' ? 'bg-success/20 text-success' : 'bg-card text-muted-foreground'
+            tipo === 'receita' ? 'bg-success/20 text-success' : 'bg-card text-muted-foreground'
           }`}
         >
           <ArrowUpCircle className="h-4 w-4" />
           Receita
+        </button>
+      </div>
+
+      {/* Subtipo */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setSubtipo('dinheiro')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-medium transition-all ${
+            subtipo === 'dinheiro' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+          }`}
+        >
+          Dinheiro
+        </button>
+        <button
+          onClick={() => setSubtipo('cartao')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-medium transition-all ${
+            subtipo === 'cartao' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+          }`}
+        >
+          <CreditCard className="h-3.5 w-3.5" />
+          Cartão
         </button>
       </div>
 
@@ -112,21 +125,23 @@ export default function AddTransactionPage() {
 
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria</label>
-          <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+          <select value={categoria} onChange={e => setCategoria(e.target.value)}
             className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
             <option value="">Selecione Categoria</option>
-            {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Conta de Origem</label>
-          <select value={accountId} onChange={e => setAccountId(e.target.value)}
-            className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Selecione Conta</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.type})</option>)}
-          </select>
-        </div>
+        {subtipo === 'cartao' && cards.length > 0 && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Cartão</label>
+            <select value={cartaoId} onChange={e => setCartaoId(e.target.value)}
+              className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
+              <option value="">Selecione Cartão</option>
+              {cards.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Data</label>
@@ -134,30 +149,9 @@ export default function AddTransactionPage() {
             className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
-          <button onClick={() => setIsShared(!isShared)}
-            className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${isShared ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
-            {isShared && <Check className="h-3 w-3 text-primary-foreground" />}
-          </button>
-          <span className="text-sm text-foreground">É compartilhado?</span>
-        </div>
-
-        {isShared && (
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Quem pagou?</label>
-            <select value={paidByUserId} onChange={e => setPaidByUserId(e.target.value)}
-              className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
-              <option value="">Selecione Membro</option>
-              {members.map(m => (
-                <option key={m.user_id} value={m.user_id}>{m.user_id === user?.id ? 'Eu' : 'Membro'}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <button onClick={handleSubmit} disabled={addTx.isPending}
           className="w-full rounded-xl gradient-gold py-4 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50">
-          {addTx.isPending ? 'Salvando...' : type === 'income' ? 'Adicionar receita' : 'Adicionar despesa'}
+          {addTx.isPending ? 'Salvando...' : tipo === 'receita' ? 'Adicionar receita' : 'Adicionar despesa'}
         </button>
       </div>
     </div>

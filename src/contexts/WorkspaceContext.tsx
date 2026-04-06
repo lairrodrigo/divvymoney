@@ -5,8 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Workspace {
   id: string;
-  name: string;
-  created_by: string;
+  nome: string;
+  owner_id: string;
   role: "owner" | "editor" | "viewer";
 }
 
@@ -39,7 +39,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch memberships first
       const { data: memberships, error: mErr } = await supabase
         .from("workspace_members")
         .select("workspace_id, role")
@@ -50,7 +49,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
       const wsIds = memberships.map((m) => m.workspace_id);
 
-      // Fetch workspace details
       const { data: wsDetails, error: wsErr } = await supabase
         .from("workspaces")
         .select("*")
@@ -87,33 +85,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         console.log("Onboarding: Creating default workspace...");
 
         try {
-          // 1. Create Workspace
+          // 1. Create Workspace (trigger auto-creates membership)
           const { data: ws, error: wsErr } = await supabase
             .from("workspaces")
-            .insert({ name: "Particular", created_by: user.id })
+            .insert({ nome: "Particular", owner_id: user.id })
             .select()
+            .single();
 
           if (wsErr || !ws) {
             console.error("Workspace creation failed:", wsErr);
             setIsCreating(false);
             return;
           }
-
-          // 2. Create Membership (Owner)
-
-          // 3. Create Default Account (Carteira)
-          await supabase.from("accounts").insert({
-            workspace_id: ws.id,
-            name: "Carteira",
-            type: "cash",
-          });
-
-          // 4. Create Default Category (Geral)
-          await supabase.from("categories").insert({
-            workspace_id: ws.id,
-            name: "Geral",
-            type: "expense",
-          });
 
           await queryClient.invalidateQueries({ queryKey: ["my_workspaces", user.id] });
         } catch (e) {

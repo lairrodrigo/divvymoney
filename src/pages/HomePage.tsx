@@ -13,23 +13,12 @@ import WorkspaceSelector from '@/components/WorkspaceSelector';
 function calculateSummary(
   transactions: any[],
   month: string,
-  accounts: any[],
   pjAtivo: boolean
 ) {
-  const monthTx = transactions.filter(t => t.date?.startsWith(month));
-  const receitas = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  
-  // Find which accounts are cards
-  const cardAccountIds = accounts.filter(a => a.type === 'credit_card').map(a => a.id);
-  
-  const despDinheiro = monthTx
-    .filter(t => t.type === 'expense' && !cardAccountIds.includes(t.account_id))
-    .reduce((s, t) => s + Number(t.amount), 0);
-    
-  const despCartao = monthTx
-    .filter(t => t.type === 'expense' && cardAccountIds.includes(t.account_id))
-    .reduce((s, t) => s + Number(t.amount), 0);
-    
+  const monthTx = transactions.filter(t => t.reference_month === month);
+  const receitas = monthTx.filter(t => t.tipo === 'receita').reduce((s, t) => s + Number(t.valor), 0);
+  const despDinheiro = monthTx.filter(t => t.tipo === 'despesa' && t.subtipo === 'dinheiro').reduce((s, t) => s + Number(t.valor), 0);
+  const despCartao = monthTx.filter(t => t.tipo === 'despesa' && t.subtipo === 'cartao').reduce((s, t) => s + Number(t.valor), 0);
   const impostos = pjAtivo ? receitas * 0.15 : 0;
   return {
     receitas,
@@ -51,7 +40,7 @@ export default function HomePage() {
 
   const currentMonth = getCurrentMonth();
   const pjAtivo = profile?.pj_ativo ?? false;
-  const summary = calculateSummary(transactions, currentMonth, cards, pjAtivo);
+  const summary = calculateSummary(transactions, currentMonth, pjAtivo);
 
   return (
     <div className="animate-fade-in space-y-6 px-5 pt-14">
@@ -59,11 +48,7 @@ export default function HomePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 transition-transform active:scale-95">
-            <img 
-              src="/logo.png" 
-              alt="DivvyMoney" 
-              className="h-full w-full object-contain"
-            />
+            <img src="/logo.png" alt="DivvyMoney" className="h-full w-full object-contain" />
           </div>
           <WorkspaceSelector />
         </div>
@@ -133,17 +118,15 @@ export default function HomePage() {
           <div className="space-y-2">
             {cards.map(card => {
               const cardTotal = transactions
-                .filter(t => t.account_id === card.id && t.date?.startsWith(currentMonth))
-                .reduce((s, t) => s + Number(t.amount), 0);
-              // For now we don't have limit/closing_day in the new accounts table, 
-              // using defaults or placeholders until next DB update
-              const limit = 0; // card.limite || 0
+                .filter(t => t.cartao_id === card.id && t.reference_month === currentMonth)
+                .reduce((s, t) => s + Number(t.valor), 0);
+              const limit = Number(card.limite) || 0;
               const pct = limit > 0 ? Math.min((cardTotal / limit) * 100, 100) : 0;
               return (
                 <div key={card.id} className="rounded-xl bg-card p-4 shadow-sm border border-border/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{card.name}</span>
-                    <span className="text-xs text-muted-foreground">Cartão</span>
+                    <span className="text-sm font-medium text-foreground">{card.nome}</span>
+                    <span className="text-xs text-muted-foreground">Fecha dia {card.fechamento_dia}</span>
                   </div>
                   <div className="mt-2 flex items-end justify-between">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(cardTotal)}</span>

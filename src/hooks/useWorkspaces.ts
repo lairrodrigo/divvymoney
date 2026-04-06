@@ -45,9 +45,9 @@ export function useCreateWorkspace() {
       if (error) throw error;
       if (!data || !Array.isArray(data) || data.length === 0) throw new Error('Função não retornou dados');
 
-      // Mapeia os campos renomeados da função para o formato padrão
+      // Mapeia os campos renomeados da função para o formato padrão do novo schema
       const row = data[0];
-      return { id: row.ws_id, name: row.ws_name, created_by: row.ws_created_by, created_at: row.ws_created_at };
+      return { id: row.ws_id, nome: row.ws_name, owner_id: row.ws_created_by, created_at: row.ws_created_at };
     },
     onSuccess: () => {
       // Recarrega para mostrar o novo espaço na lista
@@ -55,7 +55,6 @@ export function useCreateWorkspace() {
     },
   });
 }
-
 
 export function useWorkspaceMembers(workspaceId: string | null) {
   return useQuery({
@@ -80,7 +79,7 @@ export function useWorkspaceTransactions(workspaceId: string | null) {
         .from('transactions')
         .select('*')
         .eq('workspace_id', workspaceId!)
-        .order('date', { ascending: false });
+        .order('transaction_date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
