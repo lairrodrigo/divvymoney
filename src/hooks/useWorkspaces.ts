@@ -39,7 +39,7 @@ export function useCreateWorkspace() {
     mutationFn: async (name: string) => {
       const { data: ws, error: wsErr } = await supabase
         .from('workspaces')
-        .insert({ name, created_by: user!.id })
+        .insert({ nome: name, owner_id: user!.id })
         .select()
         .single();
         

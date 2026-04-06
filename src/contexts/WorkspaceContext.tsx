@@ -89,7 +89,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           // 1. Create Workspace
           const { data: ws, error: wsErr } = await supabase
             .from("workspaces")
-            .insert({ name: "Particular", created_by: user.id })
+            .insert({ nome: "Particular", owner_id: user.id })
             .select()
             .single();
 
