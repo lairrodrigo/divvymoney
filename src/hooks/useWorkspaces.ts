@@ -53,7 +53,6 @@ export function useCreateWorkspace() {
   });
 }
 
-
 export function useWorkspaceMembers(workspaceId: string | null) {
   return useQuery({
     queryKey: ['workspace_members', workspaceId],
@@ -77,7 +76,7 @@ export function useWorkspaceTransactions(workspaceId: string | null) {
         .from('transactions')
         .select('*')
         .eq('workspace_id', workspaceId!)
-        .order('date', { ascending: false });
+        .order('transaction_date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
