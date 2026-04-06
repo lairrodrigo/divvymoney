@@ -43,28 +43,47 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Only workspace owner can invite' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Find user by email
+    // 1. Invitar o usuário por email (gera convite real)
+    const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email)
+    if (inviteErr) {
+      console.error('Invite error:', inviteErr)
+      // Se já existir, ignore e siga para buscar o ID (o inviteUserByEmail costuma ser idempotente)
+    }
+
+    // 2. Buscar o usuário pelo email de forma segura para obter o user_id
     const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers()
     if (listErr) throw listErr
     
     const target = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase())
     if (!target) {
-      return new Response(JSON.stringify({ error: 'Usuário não encontrado. O email precisa ter uma conta no app.' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: 'Falha ao localizar usuário após convite.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Check if already member
-    const { data: existing } = await adminClient.from('workspace_members').select('id').eq('workspace_id', workspace_id).eq('user_id', target.id).single()
-    if (existing) {
-      return new Response(JSON.stringify({ error: 'Usuário já é membro deste espaço' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    // 3. Vincular ao workspace com role 'viewer' via upsert
+    // Primeiro verifica se já existe para evitar erro de duplicidade ou atualizar a role
+    const { data: existingMember } = await adminClient
+      .from('workspace_members')
+      .select('id')
+      .eq('workspace_id', workspace_id)
+      .eq('user_id', target.id)
+      .single()
 
-    // Add member
-    const { error: insertErr } = await adminClient.from('workspace_members').insert({
-      workspace_id,
-      user_id: target.id,
-      role,
-    })
-    if (insertErr) throw insertErr
+    if (existingMember) {
+      const { error: updateErr } = await adminClient
+        .from('workspace_members')
+        .update({ role: 'viewer' })
+        .eq('id', existingMember.id)
+      if (updateErr) throw updateErr
+    } else {
+      const { error: insertErr } = await adminClient
+        .from('workspace_members')
+        .insert({
+          workspace_id,
+          user_id: target.id,
+          role: 'viewer', // Forçamos 'viewer' conforme pedido
+        })
+      if (insertErr) throw insertErr
+    }
 
     return new Response(JSON.stringify({ success: true, user_id: target.id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -28,6 +28,7 @@ export function useWorkspaces() {
       }));
     },
     enabled: isReady && !!user,
+    staleTime: 30000,
   });
 }
 
@@ -37,18 +38,20 @@ export function useCreateWorkspace() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      const { data: ws, error: wsErr } = await supabase
-        .from('workspaces')
-        .insert({ name, created_by: user!.id })
-        .select()
-        .single();
-        
-      if (wsErr) throw wsErr;
-      return ws;
+      // Usa função SQL segura que cria workspace + membro atomicamente (SECURITY DEFINER)
+      const { data, error } = await (supabase as any)
+        .rpc('create_workspace_with_owner', { workspace_name: name });
+
+      if (error) throw error;
+      if (!data || !Array.isArray(data) || data.length === 0) throw new Error('Função não retornou dados');
+
+      // Mapeia os campos renomeados da função para o formato padrão
+      const row = data[0];
+      return { id: row.ws_id, name: row.ws_name, created_by: row.ws_created_by, created_at: row.ws_created_at };
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['workspaces'] });
-      qc.invalidateQueries({ queryKey: ['my_workspaces'] });
+      // Recarrega para mostrar o novo espaço na lista
+      setTimeout(() => window.location.reload(), 600);
     },
   });
 }
@@ -100,7 +103,7 @@ export function useInviteMemberByEmail() {
         },
         body: JSON.stringify({ workspace_id: workspaceId, email }),
       });
-      
+
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao convidar membro. O Edge Function retornou status ' + response.status);

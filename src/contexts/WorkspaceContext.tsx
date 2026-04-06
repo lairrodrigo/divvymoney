@@ -20,7 +20,7 @@ interface WorkspaceContextType {
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
   activeWorkspaceId: null,
-  setActiveWorkspaceId: () => {},
+  setActiveWorkspaceId: () => { },
   workspaces: [],
   isLoading: true,
   activeWorkspace: undefined,
@@ -64,6 +64,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       })) as Workspace[];
     },
     enabled: authReady && !!user,
+    staleTime: 10000,
   });
 
   const setActiveWorkspaceId = (id: string | null) => {
@@ -84,14 +85,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       if (!isLoading && authReady && user && workspaces.length === 0 && !isCreating) {
         setIsCreating(true);
         console.log("Onboarding: Creating default workspace...");
-        
+
         try {
           // 1. Create Workspace
           const { data: ws, error: wsErr } = await supabase
             .from("workspaces")
             .insert({ name: "Particular", created_by: user.id })
             .select()
-            .single();
 
           if (wsErr || !ws) {
             console.error("Workspace creation failed:", wsErr);
@@ -100,17 +100,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           }
 
           // 2. Create Membership (Owner)
-          const { error: mErr } = await supabase.from("workspace_members").insert({
-            workspace_id: ws.id,
-            user_id: user.id,
-            role: "owner",
-          });
-
-          if (mErr) {
-            console.error("Membership creation failed:", mErr);
-            setIsCreating(false);
-            return;
-          }
 
           // 3. Create Default Account (Carteira)
           await supabase.from("accounts").insert({

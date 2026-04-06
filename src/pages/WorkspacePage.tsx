@@ -29,8 +29,15 @@ export default function WorkspacePage() {
       toast({ title: 'Espaço criado! ✅' });
       setWsName('');
       setShowCreate(false);
-    } catch {
-      toast({ title: 'Erro ao criar espaço', variant: 'destructive' });
+      // Recarrega para garantir que o novo espaço apareça na lista
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e: any) {
+      console.error('ERRO AO CRIAR ESPAÇO:', e);
+      toast({ 
+        title: 'Erro ao criar espaço',
+        description: `${e?.message || 'Erro desconhecido'} (código: ${e?.code || 'N/A'})`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -203,7 +210,7 @@ function WorkspaceDetail({
         {showInvite && (
           <div className="rounded-xl bg-card p-4 space-y-3 mb-3 animate-fade-in">
             <p className="text-xs text-muted-foreground">
-              Informe o email da pessoa que deseja convidar. Ela precisa ter uma conta no app.
+              Informe o email da pessoa que deseja convidar. Ela receberá um convite por email.
             </p>
             <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
               <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
