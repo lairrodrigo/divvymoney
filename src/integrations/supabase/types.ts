@@ -58,6 +58,53 @@ export type Database = {
           },
         ]
       }
+      expense_splits: {
+        Row: {
+          created_at: string | null
+          id: string
+          percentual: number | null
+          reference_month: string
+          renda_declarada: number | null
+          updated_at: string | null
+          user_id: string
+          valor_devido: number | null
+          valor_pago: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          percentual?: number | null
+          reference_month: string
+          renda_declarada?: number | null
+          updated_at?: string | null
+          user_id: string
+          valor_devido?: number | null
+          valor_pago?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          percentual?: number | null
+          reference_month?: string
+          renda_declarada?: number | null
+          updated_at?: string | null
+          user_id?: string
+          valor_devido?: number | null
+          valor_pago?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_splits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null
@@ -143,6 +190,103 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shopping_items: {
+        Row: {
+          comprado: boolean | null
+          created_at: string | null
+          foto_url: string | null
+          id: string
+          list_id: string
+          nome: string
+          observacao: string | null
+          preco_estimado: number | null
+          preco_real: number | null
+          quantidade: number
+          unidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comprado?: boolean | null
+          created_at?: string | null
+          foto_url?: string | null
+          id?: string
+          list_id: string
+          nome: string
+          observacao?: string | null
+          preco_estimado?: number | null
+          preco_real?: number | null
+          quantidade?: number
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comprado?: boolean | null
+          created_at?: string | null
+          foto_url?: string | null
+          id?: string
+          list_id?: string
+          nome?: string
+          observacao?: string | null
+          preco_estimado?: number | null
+          preco_real?: number | null
+          quantidade?: number
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          status: string
+          updated_at: string | null
+          user_id: string
+          valor_estimado: number | null
+          valor_real: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          valor_estimado?: number | null
+          valor_real?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_estimado?: number | null
+          valor_real?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_lists_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
