@@ -286,6 +286,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_workspace_with_owner: {
+        Args: { workspace_name: string }
+        Returns: {
+          ws_created_at: string
+          ws_created_by: string
+          ws_id: string
+          ws_name: string
+        }[]
+      }
       has_workspace_write_role: {
         Args: { _workspace_id: string }
         Returns: boolean
