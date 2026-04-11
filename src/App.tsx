@@ -35,6 +35,7 @@ function ProtectedRoutes() {
         <Route path="/historico" element={<HistoryPage />} />
         <Route path="/adicionar" element={<AddTransactionPage />} />
         <Route path="/metas" element={<GoalsPage />} />
+        <Route path="/compras" element={<ComprasPage />} />
         <Route path="/espacos" element={<WorkspacePage />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>
