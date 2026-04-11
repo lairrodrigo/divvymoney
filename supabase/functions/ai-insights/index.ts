@@ -109,7 +109,7 @@ ${summaryLines.join('\n')}`
         }
       }
     } catch (e) {
-      console.log('AI gateway unavailable, using fallback:', e.message)
+      console.log('AI gateway unavailable, using fallback:', e instanceof Error ? e.message : String(e))
     }
 
     // If AI failed, use rule-based fallback

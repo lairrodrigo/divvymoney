@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { useState } from 'react';
 
 export default function LoginPage() {
@@ -9,14 +9,14 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
-      if (authError) {
+      if (result.error) {
         setError('Erro ao fazer login. Tente novamente.');
+      }
+      if (result.redirected) {
+        return;
       }
     } catch {
       setError('Erro ao fazer login. Tente novamente.');
