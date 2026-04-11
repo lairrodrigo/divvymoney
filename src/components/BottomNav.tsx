@@ -1,11 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Clock, Plus, Target, Users, User } from 'lucide-react';
+import { Home, Clock, Plus, ShoppingCart, Users } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/historico', icon: Clock, label: 'Histórico' },
   { path: '/adicionar', icon: Plus, label: 'Adicionar', accent: true },
-  { path: '/metas', icon: Target, label: 'Metas' },
+  { path: '/compras', icon: ShoppingCart, label: 'Compras' },
   { path: '/espacos', icon: Users, label: 'Espaços' },
 ];
 

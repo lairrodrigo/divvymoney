@@ -11,6 +11,7 @@ import HomePage from "@/pages/HomePage";
 import HistoryPage from "@/pages/HistoryPage";
 import AddTransactionPage from "@/pages/AddTransactionPage";
 import GoalsPage from "@/pages/GoalsPage";
+import ComprasPage from "@/pages/ComprasPage";
 import ProfilePage from "@/pages/ProfilePage";
 import WorkspacePage from "@/pages/WorkspacePage";
 import LoginPage from "@/pages/LoginPage";
@@ -34,6 +35,7 @@ function ProtectedRoutes() {
         <Route path="/historico" element={<HistoryPage />} />
         <Route path="/adicionar" element={<AddTransactionPage />} />
         <Route path="/metas" element={<GoalsPage />} />
+        <Route path="/compras" element={<ComprasPage />} />
         <Route path="/espacos" element={<WorkspacePage />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>

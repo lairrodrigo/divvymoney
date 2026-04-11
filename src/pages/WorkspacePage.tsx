@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspaces, useCreateWorkspace, useWorkspaceMembers, useWorkspaceTransactions, useInviteMemberByEmail, useRemoveMember, useDeleteWorkspace } from '@/hooks/useWorkspaces';
 import { formatCurrency, formatDate, formatMonthLabel, getCurrentMonth } from '@/utils/billing';
 import { useToast } from '@/hooks/use-toast';
+import ExpenseSplitCard from '@/components/ExpenseSplitCard';
 
 export default function WorkspacePage() {
   const { user } = useAuth();
@@ -243,6 +244,14 @@ function WorkspaceDetail({
           ))}
         </div>
       </div>
+
+      {/* Expense Split */}
+      <ExpenseSplitCard
+        workspaceId={workspace.id}
+        members={members}
+        totalDespesas={despesas}
+        userId={userId}
+      />
 
       {/* Transactions */}
       <div>
