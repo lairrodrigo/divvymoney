@@ -10,90 +10,118 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    if (!authHeader) return json({ error: 'Não autenticado' }, 401)
+
+    const { email, workspace_id } = await req.json()
+    if (!email || !workspace_id) return json({ error: 'email e workspace_id são obrigatórios' }, 400)
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email) || email.length > 254) {
+      return json({ error: 'Email inválido' }, 400)
     }
 
-    const { email, workspace_id, role = 'member' } = await req.json()
-    if (!email || !workspace_id) {
-      return new Response(JSON.stringify({ error: 'email and workspace_id required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    // Auth user check
+    // Auth caller
     const userClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     )
     const { data: { user }, error: authError } = await userClient.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    if (authError || !user) return json({ error: 'Não autorizado' }, 401)
 
-    // Check caller is owner
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { data: ws } = await adminClient.from('workspaces').select('owner_id').eq('id', workspace_id).single()
+    // Check caller is workspace owner
+    const { data: ws } = await adminClient
+      .from('workspaces')
+      .select('owner_id')
+      .eq('id', workspace_id)
+      .single()
     if (!ws || ws.owner_id !== user.id) {
-      return new Response(JSON.stringify({ error: 'Only workspace owner can invite' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return json({ error: 'Apenas o dono do espaço pode convidar membros' }, 403)
     }
 
-    // 1. Invitar o usuário por email (gera convite real)
-    const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email)
-    if (inviteErr) {
-      console.error('Invite error:', inviteErr)
-      // Se já existir, ignore e siga para buscar o ID (o inviteUserByEmail costuma ser idempotente)
+    // Find target user by email (efficient filtered list)
+    const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers({
+      filter: `email.eq.${email.toLowerCase()}`,
+      page: 1,
+      perPage: 1,
+    })
+
+    let targetUserId: string
+
+    if (listErr || !users || users.length === 0) {
+      // User doesn't exist yet — create an invited user (not invite email, just create)
+      const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
+        email: email.toLowerCase(),
+        email_confirm: false,
+        user_metadata: { invited_to_workspace: workspace_id },
+      })
+      if (createErr) {
+        // If email_exists error from createUser, try listing again
+        if (createErr.message?.includes('already been registered')) {
+          const { data: { users: retry } } = await adminClient.auth.admin.listUsers({
+            filter: `email.eq.${email.toLowerCase()}`,
+            page: 1,
+            perPage: 1,
+          })
+          if (!retry || retry.length === 0) {
+            return json({ error: 'Não foi possível encontrar o usuário' }, 500)
+          }
+          targetUserId = retry[0].id
+        } else {
+          return json({ error: `Erro ao criar convite: ${createErr.message}` }, 500)
+        }
+      } else {
+        targetUserId = newUser.user.id
+      }
+    } else {
+      targetUserId = users[0].id
     }
 
-    // 2. Buscar o usuário pelo email de forma segura para obter o user_id
-    const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers()
-    if (listErr) throw listErr
-    
-    const target = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase())
-    if (!target) {
-      return new Response(JSON.stringify({ error: 'Falha ao localizar usuário após convite.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    // Prevent self-invite
+    if (targetUserId === user.id) {
+      return json({ error: 'Você já é dono deste espaço' }, 400)
     }
 
-    // 3. Vincular ao workspace com role 'viewer' via upsert
-    // Primeiro verifica se já existe para evitar erro de duplicidade ou atualizar a role
-    // Usamos select em vez de single para evitar erro PGRST116 se não encontrar
-    const { data: membersFound, error: findErr } = await adminClient
+    // Add to workspace (upsert via check)
+    const { data: existing } = await adminClient
       .from('workspace_members')
       .select('id')
       .eq('workspace_id', workspace_id)
-      .eq('user_id', target.id)
+      .eq('user_id', targetUserId)
 
-    if (findErr) throw new Error(`Erro ao buscar membro existente: ${findErr.message}`)
-    const existingMember = membersFound && membersFound.length > 0 ? membersFound[0] : null
-
-    if (existingMember) {
-      const { error: updateErr } = await adminClient
-        .from('workspace_members')
-        .update({ role: 'viewer' })
-        .eq('id', existingMember.id)
-      if (updateErr) throw new Error(`Erro ao atualizar papel do membro: ${updateErr.message}`)
-    } else {
-      const { error: insertErr } = await adminClient
-        .from('workspace_members')
-        .insert({
-          workspace_id,
-          user_id: target.id,
-          role: 'viewer', 
-        })
-      if (insertErr) throw new Error(`Erro ao inserir novo membro: ${insertErr.message}`)
+    if (existing && existing.length > 0) {
+      return json({ error: 'Este usuário já é membro deste espaço' }, 400)
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: target.id }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    const { error: insertErr } = await adminClient
+      .from('workspace_members')
+      .insert({
+        workspace_id,
+        user_id: targetUserId,
+        role: 'member',
+      })
+    if (insertErr) {
+      return json({ error: `Erro ao adicionar membro: ${insertErr.message}` }, 500)
+    }
+
+    return json({ success: true, user_id: targetUserId })
   } catch (error) {
     console.error('Invite error:', error)
-    const message = error instanceof Error ? error.message : 'Erro interno desconhecido'
-    return new Response(JSON.stringify({ error: `Erro ao convidar: ${message}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const message = error instanceof Error ? error.message : 'Erro interno'
+    return json({ error: `Erro ao convidar: ${message}` }, 500)
   }
 })
